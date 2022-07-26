@@ -5,7 +5,7 @@ MouseFilter is an assistive macOS app for patients with tremor
 inspired by [SteadyMouse](https://steadymouse.com).
 
 **Please note that MouseFilter is not a finished product.**
-**It may cause your Mac become unresponsive.**
+**It may cause your Mac to become unresponsive.**
 Consider setting up SSH access to be able to run `killall FilterMouse`
 from another machine in case it gets stuck.
 
