@@ -568,7 +568,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc func uninstall() {
     let response = runModal(message: "Are you sure you want to uninstall MouseFilter?",
-      information: "This will remove all of your MouseFilter settings and uninstall the app.",
+      information: "This will remove all of your settings and uninstall the app.",
       alertStyle: .informational, defaultButton: "Uninstall", alternateButton: "Cancel")
     if response == .alertSecondButtonReturn { return }
     guard runBash(
