@@ -1,0 +1,22 @@
+{
+  "images" : [
+    {
+      "filename" : "MouseFilter-Menu-Blk.png",
+      "idiom" : "universal"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "MouseFilter-Menu-Wht.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

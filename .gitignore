@@ -1,0 +1,27 @@
+build/
+.vscode/
+
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+## Obj-C/Swift specific
+*.hmap
+
+## App packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+timeline.xctimeline
+playground.xcworkspace
+
+.build/
+
+# Mac OS X
+.DS_Store
+.Trash
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
