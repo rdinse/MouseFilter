@@ -30,16 +30,11 @@ fi
 
 xcodebuild -configuration $1 build
 
-# Exit if the build failed.
-if [ $? -ne 0 ]; then
-    echo "Build failed. Exiting..."
-    exit 1
-fi
-
 # Exit here if built for Release.
 if [ $1 == "Release" ]; then
-    echo "Build successful. The app is in the build/Release directory. Exiting..."
+    (cd $SCRIPT_PATH/build/Release; zip -r MouseFilter.zip MouseFilter.app)
     open $SCRIPT_PATH/build/Release/
+    echo "Build completed. Exiting..."
     exit 0
 fi
 

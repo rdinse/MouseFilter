@@ -5,7 +5,8 @@ MouseFilter is an assistive macOS app for patients with tremor
 inspired by [SteadyMouse](https://steadymouse.com).
 
 Please note that MouseFilter is not a finished product. Install at your own risk!
-Consider setting up SSH to be able to stop it in case it gets stuck.
+Consider setting up SSH access to be able to stop it in case it gets stuck from
+another machine.
 
 ## How to install
 
