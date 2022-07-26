@@ -12,10 +12,13 @@ from another machine in case it gets stuck.
 ## How to install
 
 1. Download the
-[latest version](https://github.com/rdinse/mousefilter/releases/latest/download/MouseFilter.zip).
+[latest version](https://github.com/rdinse/MouseFilter/releases/latest/download/MouseFilter.zip).
 1. Navigate to the download folder.
-1. Douple-click the ZIP-file to unpack the MouseFilter app.
-1. Then double-click the unpacked app.
+1. Douple-click the ZIP-file to unpack the MouseFilter app (it may have been
+   unpacked automatically).
+1. Right-click MouseFilter.app and choose "Open".
+1. Click "Open" again, confirming to open an app from an unidentified developer.
+1. Follow the instructions in the alerts that pop up.
 
 ## Usage
 
