@@ -137,11 +137,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     menu.addItem(NSMenuItem(title: "Settings",
                             action: #selector(openSettings), keyEquivalent: ""))
     menu.addItem(NSMenuItem.separator())
-    menu.addItem(NSMenuItem(title: "Go to MouseFilter on GitHub",
+    menu.addItem(NSMenuItem(title: "Open Project Page",
                             action: #selector(openDeveloperPage), keyEquivalent: ""))
     menu.addItem(NSMenuItem(title: "Check for Updates",
                             action: #selector(checkForUpdates), keyEquivalent: ""))
-    menu.addItem(NSMenuItem(title: "Uninstall MouseFilter",
+    menu.addItem(NSMenuItem(title: "Uninstall",
                             action: #selector(uninstall), keyEquivalent: ""))
     menu.addItem(NSMenuItem.separator())
     menu.addItem(NSMenuItem(title: "Quit",
@@ -181,15 +181,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     settingsWindow.isReleasedWhenClosed = false
     settingsWindow.center()
     settingsWindow.title = "MouseFilter Settings"
-
-    defaults.register(
-        defaults: [
-            "smoothing": 0.75,
-            "rubberbanding": 1400,
-            "showDot": true,
-            "autoUpdate": true
-        ]
-    )
     
     let smoothing = defaults.double(forKey: "smoothing")
     let smoothingSlider = NSSlider(value: smoothing, minValue: 0, maxValue: 0.90,
@@ -226,7 +217,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     settingsWindow.contentView?.addSubview(grid)
   }
-  
+
   @objc func didChangeSmoothing(sender: NSSlider) {
     defaults.set(sender.doubleValue, forKey: "smoothing")
   }
@@ -602,9 +593,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       }
       return
     }
-    if version.components(separatedBy: ".").count != 3 { return }
+    if version.components(separatedBy: ".").count != 2 { return }
     let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"]
       as! String
+    NSLog("Current version: \(currentVersion), latest version: \(version)")
     if version != currentVersion {
       let r1 = runModal(message: "A new version of MouseFilter is available.",
         information: "You have version \(currentVersion) and the new version "
@@ -691,16 +683,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSApp.activate(ignoringOtherApps: true)
     }
     
-    NSLog("Checking if the app runs in a sandbox...")
     let environment = ProcessInfo.processInfo.environment
     if environment["APP_SANDBOX_CONTAINER_ID"] != nil {
       let r = runModal(message: "This app is running in a sandbox.",
         information: "This app does not work running in a sandbox.",
-        alertStyle: .warning, defaultButton: "Quit",
-        alternateButton: "Start anyway")
-      if r == .alertFirstButtonReturn {
-        NSApplication.shared.terminate(self)
-      }
+        alertStyle: .warning, defaultButton: "Quit")
+      NSApplication.shared.terminate(self)
+    }
+    if ProcessInfo.processInfo.environment["_"] == "/usr/bin/sudo" {
+      let _ = runModal(message: "This app is running as root.",
+        information: "This app does not work running as root.",
+        alertStyle: .warning, defaultButton: "Quit")
+      NSApplication.shared.terminate(self)
     }
 
 #if !DEBUG
@@ -717,7 +711,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       }
       installAppAndRelaunch(withPath: path)
     }
+#endif
+    
+    defaults.register(
+        defaults: [
+            "smoothing": 0.75,
+            "rubberbanding": 1400,
+            "showDot": true,
+            "autoUpdate": true
+        ]
+    )
 
+#if !DEBUG
     if defaults.bool(forKey: "checkForUpdates") {
       checkForUpdates()
     }
@@ -753,14 +758,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let timer = Timer.scheduledTimer(timeInterval: 10.0, target: self,
       selector: #selector(checkTrust), userInfo: nil, repeats: true)
     RunLoop.current.add(timer, forMode: .common)
-
-    NSLog("Checking if the app runs as root...")
-    if ProcessInfo.processInfo.environment["_"] == "/usr/bin/sudo" {
-      let _ = runModal(message: "This app is running as root.",
-        information: "This app does not work running as root.",
-        alertStyle: .warning, defaultButton: "Quit")
-      NSApplication.shared.terminate(self)
-    }
 
     // The application does not appear in the Dock and does not have a menu bar.
     // NSApp.setActivationPolicy(.accessory)
