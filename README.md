@@ -10,11 +10,12 @@ to freeze, requiring you to to restart or to stop MouseFilter via SSH.
 ## How to install
 
 1. Download the
-[latest version](https://github.com/rdinse/MouseFilter/releases/latest/download/MouseFilter.dmg).
-1. Douple-click the downloaded DMG-file. Move the app to the Applications folder.
-1. Double-click Applications and then MouseFilter.
+[latest version](https://github.com/rdinse/MouseFilter/releases/latest/download/MouseFilter.zip).
+1. Douple-click the ZIP-file to unpack the MouseFilter app (it may have been
+   unpacked automatically).
 1. Right-click MouseFilter.app and choose "Open" and confirm to [open an app from an unidentified developer](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
-1. Follow the instructions in the alerts that pop up.
+1. Follow the instructions in the alerts that pop up. Be prepared to enter your 
+  password.
 
 ## Usage
 
