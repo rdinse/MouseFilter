@@ -652,11 +652,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     if !FileManager.default.fileExists(atPath: plistPath) {
       if runBash("mkdir -p ~/Library/LaunchDaemons") == nil { return }
       plist.write(toFile: plistPath, atomically: true)
-    } else if unregister {
-      try! FileManager.default.removeItem(atPath: plistPath)
-    }
+    } 
     let _ = runBash("launchctl \(unregister ? "bootout" : "bootstrap") "
       + "gui/$(id -u) \(plistPath)")
+    if unregister {
+      try! FileManager.default.removeItem(atPath: plistPath)
+    }
   }
 
 
