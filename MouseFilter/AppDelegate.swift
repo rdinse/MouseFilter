@@ -519,8 +519,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 
   func relaunch(withPath path: String? = nil) {
-    let path = path ?? URL(fileURLWithPath: Bundle.main.resourcePath!)
-      .deletingLastPathComponent().deletingLastPathComponent().absoluteString
+    let path = path ?? Bundle.main.bundleURL.path
     let task = Process()
     task.launchPath = "/usr/bin/open"
     task.arguments = [path, "--args", "--show"]
@@ -557,7 +556,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     guard runBash(
       "(ps -ax | grep MouseFilter | grep -v grep | awk '{print $1}' | "
       + "grep -vx \(pid) | xargs kill -9 || true) && rm -rf '\(to)' && "
-      + "cp -pR '\(from)' '\(to)' && rm -rf '\(from)'", elevated: true) != nil
+      + "cp -pR '\(from)' '\(to)' && rm -rf '\(from)' && "
+      + "xattr -d -r com.apple.quarantine '\(to)'", elevated: true) != nil
       else {
       NSApplication.shared.terminate(self)
       return
@@ -595,7 +595,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     guard let version = runBash("curl -s -L -I -o /dev/null -w '%{url_effective}' "
      + "\(url) | xargs basename | sed -e 's/[^0-9.]//g'")
      else {
-      if let sender = sender as? NSMenuItem {
+      if let _ = sender as? NSMenuItem {
         let _ = runModal(message: "Could not check for updates.",
           information: "Please check your internet connection.",
           alertStyle: .informational, defaultButton: "OK", alternateButton: nil)
@@ -691,19 +691,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSApp.activate(ignoringOtherApps: true)
     }
     
+    NSLog("Checking if the app runs in a sandbox...")
+    let environment = ProcessInfo.processInfo.environment
+    if environment["APP_SANDBOX_CONTAINER_ID"] != nil {
+      let r = runModal(message: "This app is running in a sandbox.",
+        information: "This app does not work running in a sandbox.",
+        alertStyle: .warning, defaultButton: "Quit",
+        alternateButton: "Start anyway")
+      if r == .alertFirstButtonReturn {
+        NSApplication.shared.terminate(self)
+      }
+    }
+
 #if !DEBUG
-    NSLog("Checking installation path...")
-    let path = String(URL(fileURLWithPath: Bundle.main.resourcePath!)
-      .deletingLastPathComponent().deletingLastPathComponent()
-      .absoluteString.dropFirst(7))
+    let path = Bundle.main.bundleURL.path
+    NSLog("Checking installation path: \(path)")
     if !path.starts(with: "/Applications/") {
       NSLog("Copying app to Applications folder...")
-
       let response = runModal(
         message: "This app needs to be moved to the Applications folder.",
         information: "Please click OK and then enter your password.",
         alertStyle: .warning, defaultButton: "OK", alternateButton: "Cancel")
-
       if response == .alertSecondButtonReturn {
         NSApplication.shared.terminate(self)
       }
@@ -745,15 +753,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let timer = Timer.scheduledTimer(timeInterval: 10.0, target: self,
       selector: #selector(checkTrust), userInfo: nil, repeats: true)
     RunLoop.current.add(timer, forMode: .common)
-
-    NSLog("Checking if the app runs in a sandbox...")
-    let environment = ProcessInfo.processInfo.environment
-    if environment["APP_SANDBOX_CONTAINER_ID"] != nil {
-      let _ = runModal(message: "This app is running in a sandbox.",
-        information: "This app does not work running in a sandbox.",
-        alertStyle: .warning, defaultButton: "Quit")
-      NSApplication.shared.terminate(self)
-    }
 
     NSLog("Checking if the app runs as root...")
     if ProcessInfo.processInfo.environment["_"] == "/usr/bin/sudo" {

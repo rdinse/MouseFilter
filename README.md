@@ -4,20 +4,16 @@ MouseFilter is an assistive macOS app for patients with tremor
 (essential tremor, parkinson's disease and multiple sclerosis). It was
 inspired by [SteadyMouse](https://steadymouse.com).
 
-**Please note that MouseFilter is not a finished product.**
-**It may cause your Mac to become unresponsive.**
-Consider setting up SSH access to be able to run `killall FilterMouse`
-from another machine in case it gets stuck.
+**MouseFilter is not a finished product.** It may cause your Mac
+to freeze, requiring you to to restart or to stop MouseFilter via SSH.
 
 ## How to install
 
 1. Download the
-[latest version](https://github.com/rdinse/MouseFilter/releases/latest/download/MouseFilter.zip).
-1. Navigate to the download folder.
-1. Douple-click the ZIP-file to unpack the MouseFilter app (it may have been
-   unpacked automatically).
-1. Right-click MouseFilter.app and choose "Open".
-1. Click "Open" again, confirming to open an app from an unidentified developer.
+[latest version](https://github.com/rdinse/MouseFilter/releases/latest/download/MouseFilter.dmg).
+1. Douple-click the downloaded DMG-file. Move the app to the Applications folder.
+1. Double-click Applications and then MouseFilter.
+1. Right-click MouseFilter.app and choose "Open" and confirm to [open an app from an unidentified developer](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
 1. Follow the instructions in the alerts that pop up.
 
 ## Usage
@@ -39,6 +35,11 @@ setting which also helps reducing the impact of unintended movements.
 ## Build
 
 Build normally using Xcode or with `build.sh`.
+
+## Known issues
+
+* Revoking accessibility permissions while the app is running causes the machine
+  to become unresponsive.
 
 ## License
 
