@@ -41,6 +41,8 @@ if [ $1 == "Release" ]; then
       "$SCRIPT_PATH/build/Release/MouseFilter.dmg"
     rm -rf "$TMPDIR"
 
+    (cd $SCRIPT_PATH/build/Release; zip -r MouseFilter.zip MouseFilter.app)
+
     # Put the app in quarantine to simulate a fresh download.
     uuid=$(/usr/bin/uuidgen)
     url="http://${uuid}.example.com/MouseFilter.zip"

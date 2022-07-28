@@ -556,7 +556,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     guard runBash(
       "(ps -ax | grep MouseFilter | grep -v grep | awk '{print $1}' | "
       + "grep -vx \(pid) | xargs kill -9 || true) && rm -rf '\(to)' && "
-      + "cp -pR '\(from)' '\(to)' && rm -rf '\(from)' && "
+      + "cp -pR '\(from)' '\(to)' && (rm -rf '\(from)' || true) && "
       + "xattr -d -r com.apple.quarantine '\(to)'", elevated: true) != nil
       else {
       NSApplication.shared.terminate(self)
