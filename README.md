@@ -51,8 +51,8 @@ Choose "Uninstall" from the MouseFilter app's menu. The following files will be
 removed:
 
 * `/Applications/MouseFilter.app`
-* `~/Library/LaunchAgents/com.rdinse.MouseFilter.plist`
-* `~/Library/Preferences/com.rdinse.MouseFilter.plist`
+* `~/Library/LaunchAgents/com.robd.MouseFilter.plist`
+* `~/Library/Preferences/com.robd.MouseFilter.plist`
 
 ## License
 
