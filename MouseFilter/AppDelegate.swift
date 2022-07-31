@@ -26,10 +26,9 @@ import AppKit
 import ApplicationServices
 import UserNotifications
 
-/* The mechanism for warping the mouse was inspired by the Wine project:
+/* The mechanism for warping the cursor was inspired by the Wine project:
  * https://source.winehq.org/git/wine.git/blob/HEAD:/dlls/winemac.drv/cocoa_cursorclipping.m
- * See also this answer:
- * https://stackoverflow.com/questions/40904830/
+ * Explanation by Ken Thomases: https://stackoverflow.com/questions/40904830/
  */
 
 let GITHUB_REPO = "rdinse/mousefilter"
@@ -59,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   var smoothingEnabled: Bool = true
   var smoothingEnabledItem: NSMenuItem!
   var synthesizedLocation: CGPoint = CGPoint.zero
-  var filteredLocation: CGPoint = CGPoint(x: CGFloat.nan, y: CGFloat.nan)
+  var filteredLocation: CGPoint = CGPoint.zero
   var warpRecords: [WarpRecord] = []
   var lastMovementTime: CGEventTimestamp = 0
   var hideTimer: Timer?
@@ -71,19 +70,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     return ns / 1.0e9;
   }
 
-
-  /*
-  func getActiveScreen() -> NSScreen {
-    let mouseLocation = NSEvent.mouseLocation
-    let screens = NSScreen.screens()
-    for screen in screens {
-      if screen.frame.contains(mouseLocation) {
-        return screen
-      }
-    }
-    return screens[0]
-  }
-  */
 
   // Add a optional parameter offcenter allowing the alert to be moved to the side.
   func runModal(message: String, information: String, alertStyle: NSAlert.Style,
@@ -154,6 +140,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     smoothingEnabledItem.state = smoothingEnabled ? .on : .off
     if smoothingEnabled {
       filteredLocation = NSEvent.mouseLocation
+      synthesizedLocation = filteredLocation
       CGAssociateMouseAndMouseCursorPosition(0)
       showNotificationWindow(withText: "Mouse smoothing enabled")
     } else {
@@ -175,7 +162,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
   func setupSettingsWindow() {
     settingsWindow = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 480, height: 90),
+      contentRect: NSRect(x: 0, y: 0, width: 480, height: 70),
       styleMask: [.closable, .titled],
       backing: .buffered, defer: false)
     settingsWindow.isReleasedWhenClosed = false
@@ -183,19 +170,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     settingsWindow.title = "MouseFilter Settings"
     
     let smoothing = defaults.double(forKey: "smoothing")
-    let smoothingSlider = NSSlider(value: smoothing, minValue: 0, maxValue: 0.90,
+    let smoothingSlider = NSSlider(value: smoothing, minValue: 0.6, maxValue: 0.9,
       target: self, action: #selector(didChangeSmoothing))
     smoothingSlider.frame = NSRect(x: 0, y: 0, width: 240, height: 20)
     smoothingSlider.autoresizingMask = [.width]
     smoothingSlider.isContinuous = true
 
-    let rubberbanding = defaults.double(forKey: "rubberbanding")
-    let rubberbandingSlider = NSSlider(value: rubberbanding, minValue: 0, maxValue: 1800,
-      target: self, action: #selector(didChangeRubberbanding))
-    rubberbandingSlider.frame = NSRect(x: 0, y: 0, width: 240, height: 20)
-    rubberbandingSlider.autoresizingMask = [.width]
-    rubberbandingSlider.isContinuous = true
-    
     let showDot = defaults.bool(forKey: "showDot")
     let showDotCheckbox = NSButton(checkboxWithTitle:"Show dot",
       target: self, action: #selector(didChangeShowDot))
@@ -207,23 +187,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       target: self, action: #selector(didChangeAutoUpdate))
     autoUpdateCheckbox.state = autoUpdate ? NSControl.StateValue.on
       : NSControl.StateValue.off
+
+    let version = NSTextField(labelWithString: "Version "
+     + (Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String))
+    version.alignment = .right
     
+    let shortcut = defaults.bool(forKey: "shortcut")
+    let shortcutCheckbox = NSButton(checkboxWithTitle:"Shortcut (F12)",
+      target: self, action: #selector(didChangeShortcut))
+    shortcutCheckbox.state = shortcut ? NSControl.StateValue.on
+      : NSControl.StateValue.off
+
     // Add a grid with labels and inputs.
     let r = settingsWindow.contentRect(forFrameRect: settingsWindow.frame)
-    let grid = NSGridView(frame: NSRect(x: 10, y: 10, width: r.width - 20, height: r.height - 20))
-    grid.addRow(with: [NSTextField(labelWithString: "Smoothing"), smoothingSlider])
-    grid.addRow(with: [NSTextField(labelWithString: "Rubber banding"), rubberbandingSlider])
-    grid.addRow(with: [showDotCheckbox, autoUpdateCheckbox])
-    
+    let grid = NSGridView(frame: NSRect(x: 15, y: 15, width: r.width - 30, height: r.height - 30))
+    let empty = NSGridCell.emptyContentView
+    grid.addRow(with: [NSTextField(labelWithString: "Smoothing"), smoothingSlider, empty, empty])
+    grid.addRow(with: [showDotCheckbox, autoUpdateCheckbox, shortcutCheckbox, NSView(), version])
+    grid.mergeCells(inHorizontalRange: NSRange(location: 1, length: 4),
+      verticalRange: NSRange(location: 0, length: 1))
+
     settingsWindow.contentView?.addSubview(grid)
   }
 
   @objc func didChangeSmoothing(sender: NSSlider) {
     defaults.set(sender.doubleValue, forKey: "smoothing")
-  }
-
-  @objc func didChangeRubberbanding(sender: NSSlider) {
-    defaults.set(sender.doubleValue, forKey: "rubberbanding")
   }
 
   @objc func didChangeShowDot(sender: NSButton) {
@@ -232,6 +220,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc func didChangeAutoUpdate(sender: NSButton) {
     defaults.set(sender.state == NSControl.StateValue.on, forKey: "autoUpdate")
+  }
+
+  @objc func didChangeShortcut(sender: NSButton) {
+    defaults.set(sender.state == NSControl.StateValue.on, forKey: "shortcut")
   }
   
   let dotSize = CGSize(width: 5, height: 5)
@@ -383,7 +375,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     if type == .keyDown {  // F12 key, ignore repeats.
-      if event.getIntegerValueField(CGEventField.keyboardEventKeycode) == 111
+      let s = defaults.bool(forKey: "shortcut")
+      if s && event.getIntegerValueField(CGEventField.keyboardEventKeycode) == 111
         && event.getIntegerValueField(CGEventField.keyboardEventAutorepeat) == 0 {
 
         toggleSmoothing()
@@ -428,33 +421,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       // If mouse has not moved briefly, set the synthesized location to the
       // cursor location.  This prevents the mouse from drifting away after the
       // synthesized cursor has been moved far away.
-      if machAbsoluteToSeconds(eventTime - lastMovementTime) > 0.2 {
+      let a = defaults.double(forKey: "smoothing")
+      let timeout = max(0.2, a - 0.5)
+      if machAbsoluteToSeconds(eventTime - lastMovementTime) > timeout {
         synthesizedLocation = eventLocation
       }
       
       synthesizedLocation.x += deltaX
       synthesizedLocation.y += deltaY
 
-      // Clip with screen bounds (TODO: support multiple screens)
+      // Clip with screen bounds
       synthesizedLocation.x = min(max(synthesizedLocation.x, -100),
         NSScreen.main!.frame.width + 100)
       synthesizedLocation.y = min(max(synthesizedLocation.y, -100),
         NSScreen.main!.frame.height + 100)
 
       // Filter the synthesized location.
-      let a = defaults.double(forKey: "smoothing")
-      // Compute mixing weight with high resolution near 1.0.
-      var w = 1 - pow(1 - a, 3)
-
-      // Attenuate proportial to distance between filtered and synthesized.
-      let r = 2000 - defaults.double(forKey: "rubberbanding")
+      var w = 1 - pow(1 - a, 3)  // Mixing weight with high resolution near 1.0.
+      let r = 1000 * max(0.1, a - 0.3)
       let d = filteredLocation.distanceTo(synthesizedLocation)
-      w *= 1 - 0.1 * exp(-1 / pow(d / r, 2))
-      
+      w *= 1 - 0.1 * exp(-1 / pow(d / r, 2)) // Attenuate far away.
+
       let filteredLocationBefore = filteredLocation
       filteredLocation.x = w * filteredLocation.x + (1 - w) * synthesizedLocation.x
       filteredLocation.y = w * filteredLocation.y + (1 - w) * synthesizedLocation.y
-
       let filteredDeltaX = filteredLocation.x - filteredLocationBefore.x
       let filteredDeltaY = filteredLocation.y - filteredLocationBefore.y
 
@@ -490,11 +480,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         moveDotWindowToCGPoint(synthesizedLocation)
         
-        // Hide the dot 0.2 seconds after the last movement using hideTimer.
+        // Hide the dot shortly after the last movement using hideTimer.
         if hideTimer != nil {
           hideTimer!.invalidate()
         }
-        hideTimer = Timer.scheduledTimer(timeInterval: 0.2, target: self,
+        hideTimer = Timer.scheduledTimer(timeInterval: timeout, target: self,
           selector: #selector(hideDotWindow), userInfo: nil, repeats: false)
       } else if dotWindow.occlusionState.contains(.visible) {
         hideDotWindow()
@@ -509,20 +499,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
 
-  func relaunch(withPath path: String? = nil) {
-    let path = path ?? Bundle.main.bundleURL.path
-    let task = Process()
-    task.launchPath = "/usr/bin/open"
-    task.arguments = [path, "--args", "--show"]
-    task.launch()
-    NSApplication.shared.terminate(self)
-  }
-
-
   func runBash(_ source: String, elevated: Bool = false) -> String? {
-    let source = source.replacingOccurrences(of: "\"", with: "\\\"")
-    guard let script = NSAppleScript(source: "do shell script \"\(source)\" "
-      + (elevated ? " with administrator privileges" : "")) else { return nil }
+    let s = "bash -c 'set -o pipefail;"
+      + "export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin;"
+      + source.replacingOccurrences(of: "\\", with: "\\\\")
+              .replacingOccurrences(of: "\"", with: "\\\"")
+              .replacingOccurrences(of: "'", with: "'\\\\''") + "'"
+    NSLog("Running: \(s)")
+    guard let script = NSAppleScript(source: "do shell script \"\(s)\" "
+      + (elevated ? "with administrator privileges " : "")
+      + "without altering line endings") else { return nil }
     var error: NSDictionary?
     let result = script.executeAndReturnError(&error)
     switch (error?[NSAppleScript.errorNumber] as? Int16) ?? 0 {
@@ -530,7 +516,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSLog("User cancelled password prompt.")
       return nil
     case 0:
-      return result.stringValue!
+      return result.stringValue!.trimmingCharacters(in: .whitespacesAndNewlines)
     default:
       let errorMsg = error![NSAppleScript.errorMessage] as! String
       NSLog("AppleScript error: \(errorMsg)")
@@ -538,21 +524,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  
+  func relaunch(withPath path: String? = nil) {
+    let _ = runBash("open -n '\(path ?? Bundle.main.bundleURL.path)'")
+    NSApplication.shared.terminate(self)
+  }
+
 
   func installAppAndRelaunch(withPath path: String) {
     NSLog("Installing from \(path)")
     let to = "/Applications/MouseFilter.app"
-    let from = path.replacingOccurrences(of: "'", with: "\\'")
+    var from = path.replacingOccurrences(of: "'", with: "'\\''")
+
+    // See: https://lapcatsoftware.com/articles/app-translocation.html
+    let from_ = (runBash("security translocate-original-path '\(from)' | "
+      + "tail -n1") ?? "")
+    if Bundle(path: from_)?.bundleIdentifier == Bundle.main.bundleIdentifier {
+      from = from_  // Validate bundle path to be removed.
+    }
+
     let pid = NSRunningApplication.current.processIdentifier
-    guard runBash(
-      "(ps -ax | grep MouseFilter | grep -v grep | awk '{print $1}' | "
-      + "grep -vx \(pid) | xargs kill -9 || true) && rm -rf '\(to)' && "
-      + "cp -pR '\(from)' '\(to)' && (rm -rf '\(from)' || true) && "
+    guard runBash("(ps -ax | grep MouseFilter | grep -v grep | "
+      + "awk '{print $1}' | grep -vx \(pid) | xargs kill -9 || true) && "
+      + "rm -rf '\(to)' && cp -pR '\(from)' '\(to)' && (rm -rf '\(from)' || true) && "
       + "xattr -d -r com.apple.quarantine '\(to)'", elevated: true) != nil
       else {
       NSApplication.shared.terminate(self)
       return
     }
+    registerLaunchAgent()
     relaunch(withPath: to)
   }
 
@@ -563,9 +563,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       alertStyle: .informational, defaultButton: "Uninstall", alternateButton: "Cancel")
     if response == .alertSecondButtonReturn { return }
     guard runBash(
-      "rm -f ~/Library/Preferences/\(Bundle.main.bundleIdentifier!).plist && "
+      "(tccutil reset Accessibility \(Bundle.main.bundleIdentifier!) || true) && "
+      + "rm -f $HOME/Library/Preferences/\(Bundle.main.bundleIdentifier!).plist && "
       + "rm -rf /Applications/MouseFilter.app", elevated: true) != nil else { return }
-    registerLaunchDaemon(unregister: true)
+    registerLaunchAgent(unregister: true)
     NSApplication.shared.terminate(self)
   }
 
@@ -597,6 +598,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"]
       as! String
     NSLog("Current version: \(currentVersion), latest version: \(version)")
+    
     if version != currentVersion {
       let r1 = runModal(message: "A new version of MouseFilter is available.",
         information: "You have version \(currentVersion) and the new version "
@@ -631,7 +633,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       }
 
       installAppAndRelaunch(withPath: "/tmp/MouseFilter.app")
-    } else if let sender = sender as? NSMenuItem {
+    } else if let _ = sender as? NSMenuItem {
       let _ = runModal(message: "MouseFilter is up to date.",
         information: "You have version \(currentVersion).",
         alertStyle: .informational, defaultButton: "OK",
@@ -640,19 +642,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
 
-  func registerLaunchDaemon(unregister: Bool = false) {
+  func registerLaunchAgent(unregister: Bool = false) {
     let plist = NSDictionary(dictionary: [
       "Label": Bundle.main.bundleIdentifier!,
-      "ProgramArguments": ["/usr/bin/open", "-n", "-a", "MouseFilter"],
+      "ProgramArguments": ["/usr/bin/open", "/Applications/MouseFilter.app"],
       "RunAtLoad": true,
-      "StartInterval": 1.0
     ])
+
     let plistPath = NSHomeDirectory()
-      + "/Library/LaunchDaemons/\(Bundle.main.bundleIdentifier!).plist"
-    if !FileManager.default.fileExists(atPath: plistPath) {
-      if runBash("mkdir -p ~/Library/LaunchDaemons") == nil { return }
-      plist.write(toFile: plistPath, atomically: true)
-    } 
+      + "/Library/LaunchAgents/\(Bundle.main.bundleIdentifier!).plist"
+    if runBash("mkdir -p $HOME/Library/LaunchAgents") == nil { return }
+    plist.write(toFile: plistPath, atomically: true)
+    
     let _ = runBash("launchctl \(unregister ? "bootout" : "bootstrap") "
       + "gui/$(id -u) \(plistPath)")
     if unregister {
@@ -698,6 +699,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSApplication.shared.terminate(self)
     }
 
+    defaults.register(
+      defaults: [
+        "smoothing": 0.75,
+        "showDot": true,
+        "autoUpdate": true,
+        "shortcut": true,
+      ]
+    )
+
 #if !DEBUG
     let path = Bundle.main.bundleURL.path
     NSLog("Checking installation path: \(path)")
@@ -712,22 +722,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       }
       installAppAndRelaunch(withPath: path)
     }
-#endif
-    
-    defaults.register(
-        defaults: [
-            "smoothing": 0.75,
-            "rubberbanding": 1400,
-            "showDot": true,
-            "autoUpdate": true
-        ]
-    )
-
-#if !DEBUG
-    if defaults.bool(forKey: "checkForUpdates") {
+    if defaults.bool(forKey: "autoUpdate") {
       checkForUpdates()
     }
-    registerLaunchDaemon()
 #endif
 
     // Prompt user to trust the app.
@@ -749,7 +746,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
           offcenter: true)
       if (response == .alertThirdButtonReturn) {
         let _ = runBash(
-          "sudo tccutil reset Accessibility \(Bundle.main.bundleIdentifier!)",
+          "tccutil reset Accessibility \(Bundle.main.bundleIdentifier!)",
           elevated: true)
       }
       NSApplication.shared.terminate(self)
@@ -812,6 +809,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     filteredLocation = NSEvent.mouseLocation
+    synthesizedLocation = filteredLocation
     let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
     CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
     CGEvent.tapEnable(tap: eventTap, enable: true)

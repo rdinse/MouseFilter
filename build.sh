@@ -21,12 +21,12 @@ if [ "$1" == "Clean" ]; then
   echo "Cleaning build directory"
   rm -rf "$SCRIPT_PATH/build"
   echo "Deregistering from launchd"
-  (launchctl bootout GUI/$(id -u) ~/Library/LaunchAgents/com.robd.MouseFilter.plist \
+  (launchctl bootout GUI/$(id -u) ~/Library/LaunchAgents/com.rdinse.MouseFilter.plist \
     > /dev/null 2>&1) || true
   echo "Removing system files"
-  rm -f ~/Library/Preferences/com.robd.MouseFilter.plist
-  rm -f ~/Library/LaunchAgents/com.robd.MouseFilter.plist
-  tccutil reset Accessibility com.robd.MouseFilter
+  rm -f ~/Library/Preferences/com.rdinse.MouseFilter.plist
+  rm -f ~/Library/LaunchAgents/com.rdinse.MouseFilter.plist
+  tccutil reset Accessibility com.rdinse.MouseFilter
   exit 0
 fi
 
@@ -43,25 +43,26 @@ if [ $1 == "Release" ]; then
 
     (cd $SCRIPT_PATH/build/Release; zip -r MouseFilter.zip MouseFilter.app)
 
-    # Put the app in quarantine to simulate a fresh download.
+    # Put the app in quarantine in ~/Downloads to simulate a fresh download.
+    dlfile="$HOME/Downloads/MouseFilter.app"
     uuid=$(/usr/bin/uuidgen)
     url="http://${uuid}.example.com/MouseFilter.zip"
     app="Safari"
     date="$(printf %x $(date +%s))"
     ndate=$(($(date +%s) - 978307200))
-    /usr/bin/xattr -w com.apple.quarantine "0002;${date};${app};${uuid}" \
-      "$SCRIPT_PATH/build/Release/MouseFilter.app"
+    cp -r "$SCRIPT_PATH/build/Release/MouseFilter.app" "$dlfile"
+    /usr/bin/xattr -w com.apple.quarantine "0002;${date};${app};${uuid}" "$dlfile"
     /usr/bin/sqlite3 ~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2 \
       "INSERT INTO \"LSQuarantineEvent\" VALUES('${uuid}',${ndate},'com.apple.${app}','${app}','${url}',NULL,NULL,0,NULL,'${url}',NULL);"
 
     # Set the download url.
-    /usr/bin/xattr -w com.apple.metadata:kMDItemWhereFroms "${url}" \
-      "$SCRIPT_PATH/build/Release/MouseFilter.app"
+    /usr/bin/xattr -w com.apple.metadata:kMDItemWhereFroms "${url}" "$dlfile"
 
     # Reset accessibility permissions.
-    tccutil reset Accessibility com.robd.MouseFilter
+    tccutil reset Accessibility com.rdinse.MouseFilter
 
     open $SCRIPT_PATH/build/Release/
+    open "$(dirname "$dlfile")"
 
     echo "Build completed. Exiting..."
     exit 0
