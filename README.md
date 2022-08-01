@@ -6,8 +6,8 @@ inspired by [SteadyMouse](https://steadymouse.com).
 
 **MouseFilter is not a finished product.** It may cause your Mac
 to freeze, requiring you to to restart or to stop MouseFilter via SSH.
-Auto-updating is not guaranteed to be stable, so you might need to manually
-update.
+Auto-updating is not guaranteed to be reliable yet, so you might need to update
+manually.
 
 ## Requirements
 
