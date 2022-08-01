@@ -39,6 +39,7 @@ setting which also helps reducing the impact of unintended movements.
 
 * Revoking accessibility permissions while the app is running causes the machine
   to become unresponsive.
+* Mouse may lag during high CPU load.
 
 ## Uninstall
 

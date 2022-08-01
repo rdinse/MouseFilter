@@ -20,11 +20,8 @@
 
 import AppKit
 import Cocoa
-
 import Foundation
-import AppKit
 import ApplicationServices
-import UserNotifications
 
 /* The mechanism for warping the cursor was inspired by the Wine project:
  * https://source.winehq.org/git/wine.git/blob/HEAD:/dlls/winemac.drv/cocoa_cursorclipping.m
@@ -139,7 +136,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     smoothingEnabled = !smoothingEnabled
     smoothingEnabledItem.state = smoothingEnabled ? .on : .off
     if smoothingEnabled {
-      filteredLocation = NSEvent.mouseLocation
+      filteredLocation = flippedMouseLocation(NSEvent.mouseLocation)
       synthesizedLocation = filteredLocation
       CGAssociateMouseAndMouseCursorPosition(0)
       showNotificationWindow(withText: "Mouse smoothing enabled")
@@ -266,15 +263,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   var notificationWindow: NSWindow!
   var notificationWindowLabel: NSTextField!
   func setupNotificationWindow() {
-    // Setup a borderless, titleless window that has a single label.
     notificationWindow = NSWindow(
       contentRect: NSRect(x: 0, y: 0, width: 450, height: 60),
       styleMask: [.borderless],
       backing: .buffered, defer: false)
     notificationWindow.isReleasedWhenClosed = false
     notificationWindow.isOpaque = false
+    notificationWindow.backgroundColor = .clear
     notificationWindow.isMovableByWindowBackground = false
-    notificationWindow.backgroundColor = NSColor.clear
     notificationWindow.level = .popUpMenu
     notificationWindow.collectionBehavior = [.canJoinAllSpaces, .stationary]
     notificationWindow.ignoresMouseEvents = true
@@ -282,36 +278,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     notificationWindow.titlebarAppearsTransparent = true
     notificationWindow.styleMask.insert(.fullSizeContentView)
     notificationWindow.center()
-    notificationWindow.contentView?.wantsLayer = true
-    notificationWindow.contentView?.layer?.opacity = 0
 
     let blurView = NSVisualEffectView(frame: notificationWindow.contentView!.bounds)
     blurView.blendingMode = .behindWindow
-    blurView.material = .fullScreenUI
+    blurView.appearance = NSAppearance(named: .vibrantDark)
     blurView.state = .active
+    blurView.wantsLayer = true
+    blurView.layer?.cornerRadius = 16.0
     notificationWindow.contentView?.addSubview(blurView)
 
-    // A grey transparent rounded rectangle as background of the window.
-    let bg = NSImage(size: notificationWindow.frame.size, flipped: false) {
-      (dstRect) -> Bool in
-      let ctx = NSGraphicsContext.current!.cgContext
-      ctx.setFillColor(NSColor.black.withAlphaComponent(0.3).cgColor)
-      // The rounded rectangle is drawn with a radius of 10.0 using CGMutablePath
-      let path = CGMutablePath()
-      path.addRoundedRect(in: dstRect, cornerWidth: 10.0, cornerHeight: 10.0)
-      ctx.addPath(path)
-      ctx.fillPath()
-      return true
-    }
-    let imageView = NSImageView(frame: NSRect(origin: .zero, size: bg.size))
-    imageView.image = bg
-    notificationWindow.contentView?.addSubview(imageView)
-    notificationWindow.contentView?.wantsLayer = true
-    notificationWindow.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
-
     notificationWindowLabel = NSTextField(labelWithString: "")
-    notificationWindowLabel.frame = NSRect(x: 0, y: 0, width: bg.size.width,
-      height: bg.size.height - 10)
+    notificationWindowLabel.frame = NSRect(x: 0, y: 0,
+      width: notificationWindow.frame.width,
+      height: notificationWindow.frame.height - 10)
     notificationWindowLabel.isBezeled = false
     notificationWindowLabel.drawsBackground = false
     notificationWindowLabel.isEditable = false
@@ -321,33 +300,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     notificationWindowLabel.textColor = NSColor.white.withAlphaComponent(0.99)
     notificationWindowLabel.cell?.usesSingleLineMode = false
     notificationWindowLabel.cell?.alignment = .center
-
-    // Add label to window.
     notificationWindow.contentView?.addSubview(notificationWindowLabel)
   }
 
-
+  var currentAnimationUUID: UUID = UUID()
   func showNotificationWindow(withText text: String) {
     notificationWindowLabel.stringValue = text
-    notificationWindow.contentView?.layer?.opacity = 0
-    notificationWindow.contentView?.layer?.removeAllAnimations()
+    notificationWindow.animationBehavior = .none
+    notificationWindow.alphaValue = 0
     notificationWindow.makeKeyAndOrderFront(self)
 
-    let duration = 2.0
-    let anim = CAKeyframeAnimation(keyPath: "opacity")
-    anim.values = [0.0, 1.0, 1.0, 0.0]
-    anim.keyTimes = [0.0, 0.2, 0.7, 1.0]
-    anim.duration = duration
-    anim.isRemovedOnCompletion = true
-    notificationWindow.contentView?.layer?.add(anim, forKey: "opacity")
-    
-    // Hide the window when the animation is done.
-    DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-      // Make sure no other animation was added in the meantime.
-      if self.notificationWindow.contentView?.layer?.animationKeys()?.count ?? 0 == 0 {
-        self.notificationWindow.orderOut(self)
+    let animationUUID = UUID()
+    currentAnimationUUID = animationUUID
+
+    NSAnimationContext.runAnimationGroup({ (context) -> Void in
+      context.duration = 0.7
+      notificationWindow.animator().alphaValue = 1
+    }, completionHandler: { () -> Void in
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        if self.currentAnimationUUID != animationUUID {
+          return
+        }
+        NSAnimationContext.runAnimationGroup({ (context) -> Void in
+          context.duration = 0.7
+          self.notificationWindow.animator().alphaValue = 0
+        }, completionHandler: { () -> Void in
+          self.notificationWindow.orderOut(self)
+        })
       }
-    }
+    })
   }
 
 
@@ -525,8 +506,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   
-  func relaunch(withPath path: String? = nil) {
-    let _ = runBash("open -n '\(path ?? Bundle.main.bundleURL.path)'")
+  func relaunch() {
+    let _ = runBash("open -n '\(Bundle.main.bundleURL.path)'")
     NSApplication.shared.terminate(self)
   }
 
@@ -552,8 +533,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSApplication.shared.terminate(self)
       return
     }
-    registerLaunchAgent()
-    relaunch(withPath: to)
+    registerLaunchAgent()  // Relaunches the app.
+    NSApplication.shared.terminate(self)
   }
 
 
@@ -643,20 +624,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 
   func registerLaunchAgent(unregister: Bool = false) {
+    let plistPath = NSHomeDirectory()
+      + "/Library/LaunchAgents/\(Bundle.main.bundleIdentifier!).plist"
     let plist = NSDictionary(dictionary: [
       "Label": Bundle.main.bundleIdentifier!,
       "ProgramArguments": ["/usr/bin/open", "/Applications/MouseFilter.app"],
       "RunAtLoad": true,
     ])
-
-    let plistPath = NSHomeDirectory()
-      + "/Library/LaunchAgents/\(Bundle.main.bundleIdentifier!).plist"
-    if runBash("mkdir -p $HOME/Library/LaunchAgents") == nil { return }
-    plist.write(toFile: plistPath, atomically: true)
-    
-    let _ = runBash("launchctl \(unregister ? "bootout" : "bootstrap") "
-      + "gui/$(id -u) \(plistPath)")
-    if unregister {
+    let _  = runBash("mkdir -p $HOME/Library/LaunchAgents && "
+      + "launchctl bootout gui/$(id -u) \(plistPath) | true")  // Remove old.
+    if !unregister {
+      plist.write(toFile: plistPath, atomically: true)
+      let _ = runBash("launchctl bootstrap gui/$(id -u) \(plistPath)")
+    } else {
       try! FileManager.default.removeItem(atPath: plistPath)
     }
   }
@@ -687,7 +667,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     let environment = ProcessInfo.processInfo.environment
     if environment["APP_SANDBOX_CONTAINER_ID"] != nil {
-      let r = runModal(message: "This app is running in a sandbox.",
+      let _ = runModal(message: "This app is running in a sandbox.",
         information: "This app does not work running in a sandbox.",
         alertStyle: .warning, defaultButton: "Quit")
       NSApplication.shared.terminate(self)
@@ -808,7 +788,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSApplication.shared.terminate(self)
     }
 
-    filteredLocation = NSEvent.mouseLocation
+    filteredLocation = flippedMouseLocation(NSEvent.mouseLocation)
     synthesizedLocation = filteredLocation
     let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
     CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
