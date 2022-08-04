@@ -23,12 +23,8 @@ import Cocoa
 import Foundation
 import ApplicationServices
 
-/* The mechanism for warping the cursor was inspired by the Wine project:
- * https://source.winehq.org/git/wine.git/blob/HEAD:/dlls/winemac.drv/cocoa_cursorclipping.m
- * Explanation by Ken Thomases: https://stackoverflow.com/questions/40904830/
- */
-
 let GITHUB_REPO = "rdinse/mousefilter"
+let SUPPORTED_VERSIONS = [12]
 
 extension CGPoint {
   func distanceTo(_ point: CGPoint) -> CGFloat {
@@ -36,6 +32,10 @@ extension CGPoint {
   }
 }
 
+/* The mechanism for warping the cursor was inspired by the Wine project:
+ * https://source.winehq.org/git/wine.git/blob/HEAD:/dlls/winemac.drv/cocoa_cursorclipping.m
+ * Explanation by Ken Thomases: https://stackoverflow.com/questions/40904830/
+ */
 struct WarpRecord {
   var timeBefore: CGEventTimestamp
   var timeAfter: CGEventTimestamp
@@ -486,7 +486,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       + source.replacingOccurrences(of: "\\", with: "\\\\")
               .replacingOccurrences(of: "\"", with: "\\\"")
               .replacingOccurrences(of: "'", with: "'\\\\''") + "'"
-    NSLog("Running: \(s)")
+    if s.utf8.count >= 32 * 4096 {  // MAX_ARG_STRLEN
+      NSLog("Error: bash command is too long.")
+      return nil
+    }
     guard let script = NSAppleScript(source: "do shell script \"\(s)\" "
       + (elevated ? "with administrator privileges " : "")
       + "without altering line endings") else { return nil }
@@ -648,8 +651,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
-  @objc func checkTrust() {
-    if (!AXIsProcessTrusted()) {
+  @objc func reassureTrust() {  // See: https://developer.apple.com/forums/thread/649501
+    let r = runBash("sqlite3 '/Library/Application Support/com.apple.TCC/TCC.db' "
+     + "\"SELECT auth_value FROM access WHERE client = 'com.rdinse.MouseFilter'\"")
+    if (r == nil || !r!.contains("2")) {
+      NSLog("Trust revoked.")
       NSApplication.shared.terminate(self)
     }
   }
@@ -705,6 +711,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     if defaults.bool(forKey: "autoUpdate") {
       checkForUpdates()
     }
+    
+    // Check if macOS version is supported.
+    let version = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+    NSLog("Checking macOS version: \(version)")
+    if !SUPPORTED_VERSIONS.contains(version) || runBash("echo test") == nil {
+      let r = runModal(message: "This app does not support this version of macOS.",
+        information: "Please visit the developer page to check for further information.",
+        alertStyle: .informational, defaultButton: "Open developer page",
+        alternateButton: "Cancel")
+      if r == .alertFirstButtonReturn {
+        openDeveloperPage()
+      }
+      NSApplication.shared.terminate(self)
+    }
 #endif
 
     // Prompt user to trust the app.
@@ -733,8 +753,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     // Periodically check if app is still trusted.
-    let timer = Timer.scheduledTimer(timeInterval: 10.0, target: self,
-      selector: #selector(checkTrust), userInfo: nil, repeats: true)
+    let timer = Timer.scheduledTimer(timeInterval: 30.0, target: self,
+      selector: #selector(reassureTrust), userInfo: nil, repeats: true)
     RunLoop.current.add(timer, forMode: .common)
 
     // The application does not appear in the Dock and does not have a menu bar.
