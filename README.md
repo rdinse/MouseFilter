@@ -11,7 +11,7 @@ manually.
 
 ## Requirements
 
-macOS Monterey (version 12) or later.
+macOS Monterey (version 12).
 
 ## How to install
 
