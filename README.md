@@ -35,12 +35,6 @@ Accessibility > Pointer Control > Double-click speed.
 Consider setting the mouse speed (System Settings > Mouse) to a fairly low
 setting which also helps reducing the impact of unintended movements.
 
-## Known issues
-
-* Revoking accessibility permissions while the app is running causes the machine
-  to become unresponsive.
-* Mouse may lag during high CPU load.
-
 ## Uninstall
 
 Choose "Uninstall" from the MouseFilter app's menu. The following files will be
