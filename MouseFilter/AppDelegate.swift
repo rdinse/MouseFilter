@@ -651,10 +651,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
-  @objc func reassureTrust() {  // See: https://developer.apple.com/forums/thread/649501
-    let r = runBash("sqlite3 '/Library/Application Support/com.apple.TCC/TCC.db' "
-     + "\"SELECT auth_value FROM access WHERE client = 'com.rdinse.MouseFilter'\"")
-    if (r == nil || !r!.contains("2")) {
+  @objc func reassureTrust() {
+    // TODO: This does not work. https://developer.apple.com/forums/thread/649501
+    if (!AXIsProcessTrusted()) {
       NSLog("Trust revoked.")
       NSApplication.shared.terminate(self)
     }
