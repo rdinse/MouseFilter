@@ -40,7 +40,7 @@ Tremor patients might benefit from reducing input speed and repeat rates in *Sys
 
 ## Known issues
 
-* In some applications dragging the mouse is constrained to x- and y-axis and
+* In some applications dragging the mouse is constrained to the x- and y-axes and
   laggy, e.g. when setting the boundaries for screen recording with QuickTime.
 
 ## Uninstall
