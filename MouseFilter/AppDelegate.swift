@@ -747,6 +747,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let _ = runBash(
           "tccutil reset Accessibility \(Bundle.main.bundleIdentifier!)",
           elevated: true)
+        relaunch();
       }
       NSApplication.shared.terminate(self)
     }
