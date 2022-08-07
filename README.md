@@ -9,6 +9,8 @@ to freeze, requiring you to to restart or to stop MouseFilter via SSH.
 Auto-updating is not guaranteed to be reliable yet, so you might need to update
 manually.
 
+![](https://raw.githubusercontent.com/rdinse/MouseFilter/master/MouseFilter.gif)
+
 ## Requirements
 
 macOS Monterey (version 12).
@@ -29,11 +31,17 @@ It can quickly be enabled or disabled with the `F12` key.
 
 ## Recommended system settings
 
-Set the double-click speed to a relatively low setting: System Settings >
-Accessibility > Pointer Control > Double-click speed.
+Tremor patients might benefit from reducing input speed and repeat rates in *System Settings*:
 
-Consider setting the mouse speed (System Settings > Mouse) to a fairly low
-setting which also helps reducing the impact of unintended movements.
+* Mouse speed: System Settings > Mouse
+* Double-click speed: System Settings > Accessibility > Pointer Control > Double-click speed
+* Slow keys: System Settings > Accessibility > Keyboard > Hardware > Slow keys (consider changing the delay)
+* Key Repeat rate and delay: System Settings > Keyboard
+
+## Known issues
+
+* In some applications dragging the mouse is constrained to x- and y-axis and
+  laggy, e.g. when setting the boundaries for screen recording with QuickTime.
 
 ## Uninstall
 
