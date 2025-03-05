@@ -28,12 +28,16 @@ macOS Monterey (version 12) or higher.
 
 MouseFilter lives in the menu bar in the top-right corner of the screen.
 It can quickly be enabled or disabled with the `F12` key.
+The filter has two parameters which can be changed in the settings:
+
+1. `Min. cutoff`: Reduce this to reduce jitter during slow mouse speeds.
+2. `Beta`: Increase this to reduce high-speed lag.  This allows to catch up when the mouse moves quickly.
 
 ## Recommended system settings
 
 Tremor patients might benefit from reducing input speed and repeat rates in *System Settings*:
 
-* Mouse speed: System Settings > Mouse
+* Mouse speed: System Settings > Mouse speed.  Changing this might require readjusting the filter.
 * Double-click speed: System Settings > Accessibility > Pointer Control > Double-click speed
 * Slow keys: System Settings > Accessibility > Keyboard > Hardware > Slow keys (consider changing the delay)
 * Key Repeat rate and delay: System Settings > Keyboard
