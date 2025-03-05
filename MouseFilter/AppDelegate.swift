@@ -24,7 +24,7 @@ import Foundation
 import ApplicationServices
 
 let GITHUB_REPO = "rdinse/mousefilter"
-let SUPPORTED_VERSIONS = [12]
+let SUPPORTED_MAJOR_VERSIONS = [12, 13, 14, 15]
 
 extension CGPoint {
   func distanceTo(_ point: CGPoint) -> CGFloat {
@@ -59,7 +59,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   var warpRecords: [WarpRecord] = []
   var lastMovementTime: CGEventTimestamp = 0
   var hideTimer: Timer?
-  
+
+  var filterX: OneEuroFilter!
+  var filterY: OneEuroFilter!
+
+  func initializeFilters() {
+    let mincutoff = defaults.double(forKey: "mincutoff")
+    let beta = defaults.double(forKey: "beta")
+    filterX = OneEuroFilter(mincutoff: mincutoff, beta: beta)
+    filterY = OneEuroFilter(mincutoff: mincutoff, beta: beta)
+  }
 
   var timebaseInfo = mach_timebase_info_data_t()
   func machAbsoluteToSeconds(_ t: UInt64 = mach_absolute_time()) -> Double {
@@ -159,19 +168,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
   func setupSettingsWindow() {
     settingsWindow = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 480, height: 70),
+      contentRect: NSRect(x: 0, y: 0, width: 480, height: 100),
       styleMask: [.closable, .titled],
       backing: .buffered, defer: false)
     settingsWindow.isReleasedWhenClosed = false
     settingsWindow.center()
     settingsWindow.title = "MouseFilter Settings"
     
-    let smoothing = defaults.double(forKey: "smoothing")
-    let smoothingSlider = NSSlider(value: smoothing, minValue: 0.6, maxValue: 0.9,
-      target: self, action: #selector(didChangeSmoothing))
-    smoothingSlider.frame = NSRect(x: 0, y: 0, width: 240, height: 20)
-    smoothingSlider.autoresizingMask = [.width]
-    smoothingSlider.isContinuous = true
+    let mincutoff = defaults.double(forKey: "mincutoff")
+    let mincutoffSlider = NSSlider(value: log(mincutoff), minValue: log(1e-6), maxValue: log(1e2),
+      target: self, action: #selector(didChangemincutoff))
+    mincutoffSlider.frame = NSRect(x: 0, y: 0, width: 240, height: 20)
+    mincutoffSlider.autoresizingMask = [.width]
+    mincutoffSlider.isContinuous = true
+    
+    let beta = defaults.double(forKey: "beta")
+    let betaSlider = NSSlider(value: log(beta), minValue: log(1e-10), maxValue: log(1.0),
+      target: self, action: #selector(didChangeBeta))
+    betaSlider.frame = NSRect(x: 0, y: 0, width: 240, height: 20)
+    betaSlider.autoresizingMask = [.width]
+    betaSlider.isContinuous = true
 
     let showDot = defaults.bool(forKey: "showDot")
     let showDotCheckbox = NSButton(checkboxWithTitle:"Show dot",
@@ -199,16 +215,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let r = settingsWindow.contentRect(forFrameRect: settingsWindow.frame)
     let grid = NSGridView(frame: NSRect(x: 15, y: 15, width: r.width - 30, height: r.height - 30))
     let empty = NSGridCell.emptyContentView
-    grid.addRow(with: [NSTextField(labelWithString: "Smoothing"), smoothingSlider, empty, empty])
-    grid.addRow(with: [showDotCheckbox, autoUpdateCheckbox, shortcutCheckbox, NSView(), version])
-    grid.mergeCells(inHorizontalRange: NSRange(location: 1, length: 4),
-      verticalRange: NSRange(location: 0, length: 1))
+    grid.addRow(with: [NSTextField(labelWithString: "Min. cutoff"), mincutoffSlider, empty, empty])
+    grid.addRow(with: [NSTextField(labelWithString: "Beta"), betaSlider, empty, empty])
 
+    grid.addRow(with: [showDotCheckbox, autoUpdateCheckbox, shortcutCheckbox, NSView(), version])
+
+    // Expand sliders to fill the grid.
+    grid.mergeCells(inHorizontalRange: NSRange(location: 1, length: 4), verticalRange: NSRange(location: 0, length: 1))
+    grid.mergeCells(inHorizontalRange: NSRange(location: 1, length: 4), verticalRange: NSRange(location: 1, length: 1))
+    
     settingsWindow.contentView?.addSubview(grid)
   }
 
-  @objc func didChangeSmoothing(sender: NSSlider) {
-    defaults.set(sender.doubleValue, forKey: "smoothing")
+  @objc func didChangemincutoff(sender: NSSlider) {
+      defaults.set(exp(sender.doubleValue), forKey: "mincutoff")
+      initializeFilters()
+  }
+  @objc func didChangeBeta(sender: NSSlider) {
+      defaults.set(exp(sender.doubleValue), forKey: "beta")
+      initializeFilters()
   }
 
   @objc func didChangeShowDot(sender: NSButton) {
@@ -401,9 +426,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
       // If mouse has not moved briefly, set the synthesized location to the
       // cursor location.  This prevents the mouse from drifting away after the
-      // synthesized cursor has been moved far away.
-      let a = defaults.double(forKey: "smoothing")
-      let timeout = max(0.2, a - 0.5)
+      // synthesized cursor has slipped at the end of a movement.
+      // let a = defaults.double(forKey: "smoothing")
+      // let timeout = max(0.2, a - 0.5)
+      let timeout = 0.2
       if machAbsoluteToSeconds(eventTime - lastMovementTime) > timeout {
         synthesizedLocation = eventLocation
       }
@@ -418,14 +444,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSScreen.main!.frame.height + 100)
 
       // Filter the synthesized location.
-      var w = 1 - pow(1 - a, 3)  // Mixing weight with high resolution near 1.0.
-      let r = 1000 * max(0.1, a - 0.3)
-      let d = filteredLocation.distanceTo(synthesizedLocation)
-      w *= 1 - 0.1 * exp(-1 / pow(d / r, 2)) // Attenuate far away.
-
       let filteredLocationBefore = filteredLocation
-      filteredLocation.x = w * filteredLocation.x + (1 - w) * synthesizedLocation.x
-      filteredLocation.y = w * filteredLocation.y + (1 - w) * synthesizedLocation.y
+      let t = machAbsoluteToSeconds(eventTime)
+      filteredLocation.x = filterX.filter(synthesizedLocation.x, timestamp: t)
+      filteredLocation.y = filterY.filter(synthesizedLocation.y, timestamp: t)
       let filteredDeltaX = filteredLocation.x - filteredLocationBefore.x
       let filteredDeltaY = filteredLocation.y - filteredLocationBefore.y
 
@@ -686,7 +708,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     defaults.register(
       defaults: [
-        "smoothing": 0.75,
+        "mincutoff": 1.0,
+        "beta": 1e-5,
         "showDot": true,
         "autoUpdate": true,
         "shortcut": true,
@@ -714,7 +737,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Check if macOS version is supported.
     let version = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
     NSLog("Checking macOS version: \(version)")
-    if !SUPPORTED_VERSIONS.contains(version) || runBash("echo test") == nil {
+    if !SUPPORTED_MAJOR_VERSIONS.contains(version) || runBash("echo test") == nil {
       let r = runModal(message: "This app does not support this version of macOS.",
         information: "Please visit the developer page to check for further information.",
         alertStyle: .informational, defaultButton: "Open developer page",
@@ -808,6 +831,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       NSApplication.shared.terminate(self)
     }
 
+    initializeFilters()
     filteredLocation = flippedMouseLocation(NSEvent.mouseLocation)
     synthesizedLocation = filteredLocation
     let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)

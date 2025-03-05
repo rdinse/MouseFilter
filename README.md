@@ -2,7 +2,7 @@
 
 MouseFilter is an assistive macOS app for patients with tremor
 (essential tremor, parkinson's disease and multiple sclerosis). It was
-inspired by [SteadyMouse](https://steadymouse.com).
+inspired by [SteadyMouse](https://steadymouse.com).  It uses the [1€ filter](https://gery.casiez.net/1euro/).
 
 **MouseFilter is not a finished product.** It may cause your Mac
 to freeze, requiring you to to restart or to stop MouseFilter via SSH.
@@ -13,7 +13,7 @@ manually.
 
 ## Requirements
 
-macOS Monterey (version 12).
+macOS Monterey (version 12) or higher.
 
 ## How to install
 
@@ -38,11 +38,6 @@ Tremor patients might benefit from reducing input speed and repeat rates in *Sys
 * Slow keys: System Settings > Accessibility > Keyboard > Hardware > Slow keys (consider changing the delay)
 * Key Repeat rate and delay: System Settings > Keyboard
 
-## Known issues
-
-* In some applications dragging the mouse is constrained to the x- and y-axes and
-  laggy, e.g. when setting the boundaries for screen recording with QuickTime.
-
 ## Uninstall
 
 Choose "Uninstall" from the MouseFilter app's menu. The following files will be
@@ -52,6 +47,6 @@ removed:
 * `~/Library/LaunchAgents/com.rdinse.MouseFilter.plist`
 * `~/Library/Preferences/com.rdinse.MouseFilter.plist`
 
-## TODO
+## To-do list
 
 * Support multiple screens when clipping mouse cursor position.
