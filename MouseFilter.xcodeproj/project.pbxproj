@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06C6D4C12D78A95D009711D4 /* OneEuroFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C6D4C02D78A95D009711D4 /* OneEuroFilter.swift */; };
 		55DDBB48285E4C2800A6F8D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DDBB47285E4C2800A6F8D9 /* AppDelegate.swift */; };
 		55DDBB4A285E4C2800A6F8D9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DDBB49285E4C2800A6F8D9 /* ViewController.swift */; };
 		55DDBB4C285E4C2A00A6F8D9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 55DDBB4B285E4C2A00A6F8D9 /* Assets.xcassets */; };
@@ -16,6 +17,7 @@
 /* Begin PBXFileReference section */
 		06242F7428781BC30065EFC5 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		06242F7528781C380065EFC5 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build.sh; sourceTree = "<group>"; };
+		06C6D4C02D78A95D009711D4 /* OneEuroFilter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OneEuroFilter.swift; sourceTree = "<group>"; };
 		55DDBB44285E4C2800A6F8D9 /* MouseFilter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MouseFilter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		55DDBB47285E4C2800A6F8D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		55DDBB49285E4C2800A6F8D9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -59,6 +61,7 @@
 		55DDBB46285E4C2800A6F8D9 /* MouseFilter */ = {
 			isa = PBXGroup;
 			children = (
+				06C6D4C02D78A95D009711D4 /* OneEuroFilter.swift */,
 				55DDBB47285E4C2800A6F8D9 /* AppDelegate.swift */,
 				55DDBB49285E4C2800A6F8D9 /* ViewController.swift */,
 				55DDBB4B285E4C2A00A6F8D9 /* Assets.xcassets */,
@@ -140,6 +143,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				55DDBB4A285E4C2800A6F8D9 /* ViewController.swift in Sources */,
+				06C6D4C12D78A95D009711D4 /* OneEuroFilter.swift in Sources */,
 				55DDBB48285E4C2800A6F8D9 /* AppDelegate.swift in Sources */,
 				55DDBB58285E4DA500A6F8D9 /* main.swift in Sources */,
 			);
@@ -280,7 +284,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rdinse.MouseFilter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -307,7 +311,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rdinse.MouseFilter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
